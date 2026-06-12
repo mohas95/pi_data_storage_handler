@@ -20,10 +20,11 @@ class SQLiteDataHandler:
     def __init__(self, db_path, dict_of_tables = None):
         
         self.db_path = Path(db_path)
-        self.tables = dict_of_tables or DEFAULT_TABLES
+        self.tables = dict_of_tables
 
-        for table_name, table_content in self.tables.items():
-            self.init_table(table_name, table_content)
+        if(dict_of_tables):
+            for table_name, table_content in self.tables.items():
+                self.init_table(table_name, table_content)
 
     def connect_db(self):
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -106,3 +107,28 @@ class SQLiteDataHandler:
                 return False, f"Missing required columns: {missing_required}"
             
             return True, "compatible"
+        
+if __name__ == "__main__":
+
+    db_path = "data/test1.db"
+    data = {"device_id":"atmino",
+            "sensor_type":"env",
+            "timestamp":"atmino",
+            "payload_json":"atmino",
+            }
+
+
+    sensor_handler = SQLiteDataHandler(db_path, DEFAULT_TABLES)
+
+    sensor_handler.insert("sensor_readings", data)
+
+
+    with sqlite3.connect(db_path) as conn:
+        conn.row_factory = sqlite3.Row
+
+        rows = conn.execute(
+            "SELECT * FROM sensor_readings"
+        ).fetchall()
+
+        for row in rows:
+            print(dict(row))
