@@ -38,6 +38,8 @@ class SQLiteDataHandler:
         if "logged_timestamp" not in table_content:
             table_content += ", logged_timestamp TEXT NOT NULL"
 
+        if "uploaded" not in table_content:
+            table_content += ", uploaded INTEGER NOT NULL DEFAULT 0"
 
         with self.connect_db() as conn:
             conn.execute(f"""
@@ -107,7 +109,15 @@ class SQLiteDataHandler:
                 return False, f"Missing required columns: {missing_required}"
             
             return True, "compatible"
-        
+    
+    # TODO: 
+    def get_unsynced_readings(self,limit=50):
+        pass
+
+    def mark_uploaded(self):
+        pass
+
+
 if __name__ == "__main__":
 
     db_path = "data/test1.db"
