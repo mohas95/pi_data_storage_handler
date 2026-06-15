@@ -2,6 +2,9 @@ import sqlite3
 import json
 from datetime import datetime, timezone
 from pathlib import Path
+import os, time
+from influxdb_client_3 import InfluxDBClient3, Point
+
 
 SENSOR_TABLE_CONTENT = """
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -17,14 +20,18 @@ DEFAULT_TABLES = {"sensor_readings":SENSOR_TABLE_CONTENT}
 
 
 class SQLiteDataHandler:
-    def __init__(self, db_path, dict_of_tables = None):
+    def __init__(self, db_path, dict_of_tables = None, influxdb_client = None):
         
         self.db_path = Path(db_path)
         self.tables = dict_of_tables
+        self.influxdb_client = influxdb_client
+
 
         if(dict_of_tables):
             for table_name, table_content in self.tables.items():
                 self.init_table(table_name, table_content)
+
+        
 
     def connect_db(self):
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -140,13 +147,13 @@ class SQLiteDataHandler:
 
 if __name__ == "__main__":
 
+
     db_path = "data/test1.db"
     data = {"device_id":"atmino",
             "sensor_type":"env",
             "timestamp":"atmino",
             "payload_json":"atmino",
             }
-
 
     sensor_handler = SQLiteDataHandler(db_path, DEFAULT_TABLES)
 
