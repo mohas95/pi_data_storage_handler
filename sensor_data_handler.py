@@ -31,8 +31,6 @@ class SQLiteDataHandler:
             for table_name, table_content in self.tables.items():
                 self.init_table(table_name, table_content)
 
-        
-
     def connect_db(self):
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -143,6 +141,34 @@ class SQLiteDataHandler:
                 """,
                 (id,),
             )
+
+    def init_influxdb_client(self, influxdb_client):
+        self.influxdb_client = influxdb_client
+        
+    def write_to_influxdb(self, bucket, measurement_group, payload, tags, timestamp=None):
+        if not self.influxdb_client:
+            print("No influxdb client set, please initialize")
+            return False
+        
+        try:
+            point = Point(measurement_group)
+
+            for field_name, value in payload.items():
+                point.field(field_name, value)
+
+            for tag_name, tag in tags.items():
+                point.tag(tag_name, tag)
+            
+            if timestamp:
+                point.time(timestamp)
+            
+            self.influxdb_client.write(database=bucket, record=point)
+
+            return True
+        except Exception as e:
+            print("failed to upload to influxdb client: {e}")
+            return False
+
 
 
 if __name__ == "__main__":
