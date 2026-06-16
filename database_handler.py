@@ -6,17 +6,104 @@ import os, time
 from influxdb_client_3 import InfluxDBClient3, Point
 
 
+### Experimental Information
+EXPERIMENTS_META_TABLE_CONTENT = """
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    experiment_id TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    crop TEXT NOT NULL,
+    start_time TEXT NOT NULL,
+    notes TEXT
+"""
+
+### Event Capture Tables
+
+CAPTURE_EVENTS_TABLE_CONTENT = """
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    capture_id TEXT NOT NULL UNIQUE,
+    experiment_id TEXT NOT NULL,
+    timestamp TEXT NOT NULL,
+    logged_timestamp TEXT NOT NULL,
+    notes TEXT,
+
+    FOREIGN KEY(experiment_id) REFERENCES experiments(experiment_id)
+
+"""
+
+IMAGE_CAPTURE_TABLE_CONTENT ="""
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    capture_id TEXT NOT NULL,
+    image_id TEXT NOT NULL,
+    camera_id TEXT NOT NULL,
+    file_path TEXT NOT NULL,
+    image_type TEXT,
+    width INTEGER,
+    height INTEGER,
+    size_bytes INTEGER,
+
+    FOREIGN KEY(capture_id) REFERENCES capture_events(capture_id)
+
+"""
+
+
+POSE_CAPTURE_TABLE_CONTENT = """
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    capture_id TEXT NOT NULL,
+    x_mm REAL  NOT NULL,
+    y_mm REAL  NOT NULL,
+    z_mm REAL  NOT NULL,
+    pose_is_stale INTEGER DEFAULT 0,
+
+    FOREIGN KEY(capture_id) REFERENCES capture_events(capture_id)
+"""
+
+
+SENSOR_CAPTURE_TABLE_CONTENT = """
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    capture_id TEXT NOT NULL,
+    device_id TEXT NOT NULL,
+    sensor_type TEXT NOT NULL,
+    payload_json TEXT NOT NULL,
+
+    FOREIGN KEY(capture_id) REFERENCES capture_events(capture_id)
+"""
+
+
+### Continuous monitoring Tables
+
+POSE_TABLE_CONTENT = """
+    pose_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    experiment_id TEXT NOT NULL,
+    x_mm REAL NOT NULL,
+    y_mm REAL NOT NULL,
+    z_mm REAL NOT NULL,
+    pose_is_stale INTEGER DEFAULT 0,
+    note TEXT,
+    timestamp TEXT NOT NULL,
+    FOREIGN KEY(experiment_id) REFERENCES experiments(experiment_id)
+"""
+
 SENSOR_TABLE_CONTENT = """
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    experiment_id TEXT NOT NULL,
     device_id TEXT NOT NULL,
     sensor_type TEXT NOT NULL,
     timestamp TEXT NOT NULL,
     payload_json TEXT NOT NULL,
-    uploaded INTEGER NOT NULL DEFAULT 0
+    FOREIGN KEY(experiment_id) REFERENCES experiments(experiment_id)
 """
 
 
-DEFAULT_TABLES = {"sensor_readings":SENSOR_TABLE_CONTENT}
+
+
+DEFAULT_TABLES = {"experiments" : EXPERIMENTS_META_TABLE_CONTENT,
+                  "capture_events" : CAPTURE_EVENTS_TABLE_CONTENT,
+                  "pose_events" : POSE_CAPTURE_TABLE_CONTENT,
+                  "sensor_events" : SENSOR_CAPTURE_TABLE_CONTENT,
+                  "image_events" : IMAGE_CAPTURE_TABLE_CONTENT,
+                  "sensor_continuous" : SENSOR_TABLE_CONTENT,
+                  "pose_continuous" : POSE_TABLE_CONTENT,
+                  }
 
 
 class SQLiteDataHandler:
@@ -36,15 +123,18 @@ class SQLiteDataHandler:
 
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row  # lets you access columns by name
+        conn.execute("PRAGMA foreign_keys = ON")
         return conn
 
     def init_table(self, table_name, table_content):
 
-        if "logged_timestamp" not in table_content:
-            table_content += ", logged_timestamp TEXT NOT NULL"
+        # if "logged_timestamp" not in table_content:
+        #     table_content += ", logged_timestamp TEXT NOT NULL"
 
-        if "uploaded" not in table_content:
-            table_content += ", uploaded INTEGER NOT NULL DEFAULT 0"
+        # if "uploaded" not in table_content:
+        #     table_content += ", uploaded INTEGER NOT NULL DEFAULT 0"
+
+        table_content = self._add_auto_columns(table_content)
 
         with self.connect_db() as conn:
             conn.execute(f"""
@@ -75,6 +165,32 @@ class SQLiteDataHandler:
                 """,
                 data_values,
             )
+
+    def _add_auto_columns(self, table_content):
+        auto_columns = []
+
+        if "logged_timestamp" not in table_content:
+            auto_columns.append("logged_timestamp TEXT NOT NULL")
+
+        if "uploaded" not in table_content:
+            auto_columns.append("uploaded INTEGER NOT NULL DEFAULT 0")
+
+        if not auto_columns:
+            return table_content
+
+        if "FOREIGN KEY" in table_content:
+            before_fk, after_fk = table_content.split("FOREIGN KEY", 1)
+
+            before_fk = before_fk.rstrip().rstrip(",")
+            after_fk = "FOREIGN KEY" + after_fk.lstrip()
+
+            return f"""
+                {before_fk},
+                {", ".join(auto_columns)},
+                {after_fk}
+            """
+
+        return table_content.rstrip().rstrip(",") + ", " + ", ".join(auto_columns)
 
     def data_compatible(self, table_name, data):
         with self.connect_db() as conn:
@@ -122,7 +238,7 @@ class SQLiteDataHandler:
                 SELECT *
                 FROM {table_name}
                 WHERE uploaded = 0
-                ORDER BY timestamp ASC
+                ORDER BY logged_timestamp ASC
                 LIMIT ?
                 """,
                 (limit,),
@@ -166,8 +282,9 @@ class SQLiteDataHandler:
 
             return True
         except Exception as e:
-            print("failed to upload to influxdb client: {e}")
+            print(f"failed to upload to influxdb client: {e}")
             return False
+
 
 
 
