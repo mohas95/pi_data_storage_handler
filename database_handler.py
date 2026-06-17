@@ -4,6 +4,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 import os, time
 from influxdb_client_3 import InfluxDBClient3, Point
+import threading
+from dataclasses import dataclass
 
 
 ### Experimental Information
@@ -127,12 +129,20 @@ DEFAULT_TABLES = {"experiments" : EXPERIMENTS_META_TABLE_CONTENT,
                   }
 
 
+@dataclass
+class DataRoutine:
+    thread: threading.Thread
+    stop_event: threading.Event
+
+
 class SQLiteDataHandler:
     def __init__(self, db_path, dict_of_tables = None, influxdb_client = None):
         
         self.db_path = Path(db_path)
         self.tables = dict_of_tables
         self.influxdb_client = influxdb_client
+        
+        self.active_data_routines = {}
 
 
         if(dict_of_tables):
@@ -142,18 +152,13 @@ class SQLiteDataHandler:
     def connect_db(self):
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
 
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10)
         conn.row_factory = sqlite3.Row  # lets you access columns by name
         conn.execute("PRAGMA foreign_keys = ON")
+        conn.execute("PRAGMA journal_mode=WAL")
         return conn
 
     def init_table(self, table_name, table_content):
-
-        # if "logged_timestamp" not in table_content:
-        #     table_content += ", logged_timestamp TEXT NOT NULL"
-
-        # if "uploaded" not in table_content:
-        #     table_content += ", uploaded INTEGER NOT NULL DEFAULT 0"
 
         table_content = self._add_auto_columns(table_content)
 
@@ -306,7 +311,52 @@ class SQLiteDataHandler:
             print(f"failed to upload to influxdb client: {e}")
             return False
 
+    def start(self, data_routine, run_rate_s = 1, routine_name = "data_routine"):
+        self.kill(routine_name)
 
+        stop_event = threading.Event()
+
+        def _data_routine_loop():
+            while not stop_event.is_set():
+                try:
+                    data_routine()
+                    
+                except Exception as e:
+                    print(f"[{routine_name}]Data routine failed: {e}")
+                
+                stop_event.wait(run_rate_s)
+
+        thread = threading.Thread(target=_data_routine_loop, daemon=True, name=routine_name)
+        try:
+            thread.start()
+            self.active_data_routines[routine_name] = DataRoutine(thread=thread, stop_event=stop_event)
+
+        except Exception as e:
+            print(f"[{routine_name}]Data routine failed to start: {e}")
+
+
+
+
+    def kill(self, routine_name):
+
+        routine = self.active_data_routines.get(routine_name)
+
+        if routine is None:
+            return
+
+        routine.stop_event.set()
+
+        try:
+            if threading.current_thread() is not routine.thread:
+                routine.thread.join(timeout=5)
+        except Exception as e:
+            print(f"[{routine_name}]Data routine failed: {e}")
+        self.active_data_routines.pop(routine_name, None)
+
+    def kill_all(self):
+        for routine_name in list(self.active_data_routines.keys()):
+            self.kill(routine_name)
+        
 
 
 if __name__ == "__main__":
