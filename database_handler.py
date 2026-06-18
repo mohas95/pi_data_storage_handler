@@ -51,11 +51,14 @@ IMAGE_CAPTURE_TABLE_CONTENT ="""
 POSE_CAPTURE_TABLE_CONTENT = """
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     capture_id TEXT NOT NULL,
-    x_mm REAL  NOT NULL,
-    y_mm REAL  NOT NULL,
-    z_mm REAL  NOT NULL,
+    device_id TEXT NOT NULL,
+    x_mm REAL,
+    y_mm REAL,
+    z_mm REAL,
     raw_joints_json TEXT NOT NULL,
     pose_is_stale INTEGER DEFAULT 0,
+    standby_mode INTEGER DEFAULT 0, 
+    note TEXT,
 
     FOREIGN KEY(capture_id) REFERENCES capture_events(capture_id)
 """
@@ -76,12 +79,14 @@ SENSOR_CAPTURE_TABLE_CONTENT = """
 
 POSE_TABLE_CONTENT = """
     pose_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    device_id TEXT NOT NULL,
     experiment_id TEXT NOT NULL,
-    x_mm REAL NOT NULL,
-    y_mm REAL NOT NULL,
-    z_mm REAL NOT NULL,
+    x_mm REAL,
+    y_mm REAL,
+    z_mm REAL,
     raw_joints_json TEXT NOT NULL,
     pose_is_stale INTEGER DEFAULT 0,
+    standby_mode INTEGER DEFAULT 0, 
     note TEXT,
     timestamp TEXT NOT NULL,
     FOREIGN KEY(experiment_id) REFERENCES experiments(experiment_id)
