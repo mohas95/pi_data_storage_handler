@@ -54,6 +54,7 @@ POSE_CAPTURE_TABLE_CONTENT = """
     x_mm REAL  NOT NULL,
     y_mm REAL  NOT NULL,
     z_mm REAL  NOT NULL,
+    raw_joints_json TEXT NOT NULL,
     pose_is_stale INTEGER DEFAULT 0,
 
     FOREIGN KEY(capture_id) REFERENCES capture_events(capture_id)
@@ -79,6 +80,7 @@ POSE_TABLE_CONTENT = """
     x_mm REAL NOT NULL,
     y_mm REAL NOT NULL,
     z_mm REAL NOT NULL,
+    raw_joints_json TEXT NOT NULL,
     pose_is_stale INTEGER DEFAULT 0,
     note TEXT,
     timestamp TEXT NOT NULL,
