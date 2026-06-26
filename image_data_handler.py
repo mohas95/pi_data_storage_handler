@@ -28,7 +28,7 @@ def request_frame(server_url, save_dir, filename=None, params={}):
     return{
         "file_name": filename,
         "file_path": file_path,
-        "image_id": uuid.uuid4().hex,
+        "image_id": image_id,
         "size_bytes": file_path.stat().st_size,
         "timestamp_utc": timestamp.astimezone(timezone.utc).isoformat(),
     }
