@@ -74,6 +74,16 @@ SENSOR_CAPTURE_TABLE_CONTENT = """
     FOREIGN KEY(capture_id) REFERENCES capture_events(capture_id)
 """
 
+SCHEDULED_EVENTS_CAPTURE_TABLE_CONTENT = """
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    capture_id TEXT NOT NULL,
+    device_id TEXT NOT NULL,
+    event_type TEXT NOT NULL,
+    status INTEGER NOT NULL,
+    schedule_json TEXT NOT NULL,
+    FOREIGN KEY(capture_id) REFERENCES capture_events(capture_id)
+"""
+
 
 ### Continuous monitoring Tables
 
@@ -102,6 +112,17 @@ SENSOR_TABLE_CONTENT = """
     FOREIGN KEY(experiment_id) REFERENCES experiments(experiment_id)
 """
 
+SCHEDULED_EVENTS_TABLE_CONTENT = """
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    experiment_id TEXT NOT NULL,
+    device_id TEXT NOT NULL,
+    event_type TEXT NOT NULL,
+    status INTEGER NOT NULL,
+    timestamp TEXT NOT NULL,
+    schedule_json TEXT NOT NULL,
+    FOREIGN KEY(experiment_id) REFERENCES experiments(experiment_id)
+"""
+
 ## PRESET TABLES
 EXPERIMENTS_TABLE={"experiments" : EXPERIMENTS_META_TABLE_CONTENT}
 
@@ -120,19 +141,28 @@ IMAGE_EVENTS_TABLE={"experiments" : EXPERIMENTS_META_TABLE_CONTENT,
                      "capture_events" : CAPTURE_EVENTS_TABLE_CONTENT,
                      "image_events" : IMAGE_CAPTURE_TABLE_CONTENT }
 
+SCHEDULED_EVENTS_TABLE={"experiments" : EXPERIMENTS_META_TABLE_CONTENT,
+                     "capture_events" : CAPTURE_EVENTS_TABLE_CONTENT,
+                     "scheduled_events" : SCHEDULED_EVENTS_CAPTURE_TABLE_CONTENT }
+
 SENSORS_TABLE={"experiments" : EXPERIMENTS_META_TABLE_CONTENT,
                "sensor_continuous" : SENSOR_TABLE_CONTENT }
 
 POSE_TABLE={"experiments" : EXPERIMENTS_META_TABLE_CONTENT,
             "pose_continuous" : POSE_TABLE_CONTENT}
 
+SCHEDULED_EVENTS_CONT_TABLE={"experiments" : EXPERIMENTS_META_TABLE_CONTENT,
+                             "scheduled_events_continuous" : SCHEDULED_EVENTS_TABLE_CONTENT}
+
 DEFAULT_TABLES = {"experiments" : EXPERIMENTS_META_TABLE_CONTENT,
                   "capture_events" : CAPTURE_EVENTS_TABLE_CONTENT,
                   "pose_events" : POSE_CAPTURE_TABLE_CONTENT,
                   "sensor_events" : SENSOR_CAPTURE_TABLE_CONTENT,
                   "image_events" : IMAGE_CAPTURE_TABLE_CONTENT,
+                  "scheduled_events": SCHEDULED_EVENTS_CAPTURE_TABLE_CONTENT,
                   "sensor_continuous" : SENSOR_TABLE_CONTENT,
                   "pose_continuous" : POSE_TABLE_CONTENT,
+                  "scheduled_events_continuous": SCHEDULED_EVENTS_TABLE_CONTENT
                   }
 
 
