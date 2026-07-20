@@ -37,6 +37,7 @@ IMAGE_CAPTURE_TABLE_CONTENT ="""
     image_id TEXT NOT NULL,
     camera_id TEXT NOT NULL,
     file_name TEXT NOT NULL,
+    timestamp TEXT NOT NULL,
     image_type TEXT,
     width INTEGER,
     height INTEGER,
@@ -57,6 +58,7 @@ POSE_CAPTURE_TABLE_CONTENT = """
     raw_joints_json TEXT NOT NULL,
     pose_is_stale INTEGER DEFAULT 0,
     standby_mode INTEGER DEFAULT 0, 
+    timestamp TEXT NOT NULL,
     note TEXT,
 
     FOREIGN KEY(capture_id) REFERENCES capture_events(capture_id)
@@ -69,6 +71,7 @@ SENSOR_CAPTURE_TABLE_CONTENT = """
     device_id TEXT NOT NULL,
     sensor_type TEXT NOT NULL,
     payload_json TEXT NOT NULL,
+    timestamp TEXT NOT NULL,
 
     FOREIGN KEY(capture_id) REFERENCES capture_events(capture_id)
 """
@@ -80,6 +83,8 @@ SCHEDULED_EVENTS_CAPTURE_TABLE_CONTENT = """
     event_type TEXT NOT NULL,
     status INTEGER NOT NULL,
     schedule_json TEXT NOT NULL,
+    timestamp TEXT NOT NULL,
+    
     FOREIGN KEY(capture_id) REFERENCES capture_events(capture_id)
 """
 
