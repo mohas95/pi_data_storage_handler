@@ -25,7 +25,6 @@ CAPTURE_EVENTS_TABLE_CONTENT = """
     capture_id TEXT NOT NULL UNIQUE,
     experiment_id TEXT NOT NULL,
     timestamp TEXT NOT NULL,
-    logged_timestamp TEXT NOT NULL,
     notes TEXT,
 
     FOREIGN KEY(experiment_id) REFERENCES experiments(experiment_id)
