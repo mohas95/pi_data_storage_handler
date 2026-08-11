@@ -205,6 +205,18 @@ class SQLiteDataHandler:
 
         return [row[0] for row in rows]
 
+    def get_tables(self):
+        with self.connect_db() as conn:
+            rows = conn.execute("""
+                SELECT name
+                FROM sqlite_master
+                WHERE type = 'table'
+                AND name NOT LIKE 'sqlite_%'
+                ORDER BY name
+            """).fetchall()
+
+        return [row["name"] for row in rows]
+
     def init_table(self, table_name, table_content):
 
         table_content = self._add_auto_columns(table_content)
