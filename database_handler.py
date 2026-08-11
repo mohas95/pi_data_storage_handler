@@ -199,6 +199,12 @@ class SQLiteDataHandler:
         conn.execute("PRAGMA journal_mode=WAL")
         return conn
 
+    def integrity_check(self):
+        with self.connect_db() as conn:
+            rows = conn.execute("PRAGMA integrity_check").fetchall()
+
+        return [row[0] for row in rows]
+
     def init_table(self, table_name, table_content):
 
         table_content = self._add_auto_columns(table_content)
