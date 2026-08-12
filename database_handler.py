@@ -170,6 +170,12 @@ DEFAULT_TABLES = {"experiments" : EXPERIMENTS_META_TABLE_CONTENT,
                   }
 
 
+default_influx_tag_indentifiers = ["experiment_id", "capture_id"]
+default_influx_unique_measurement_override_indentifiers = ["device_id"]
+default_influx_unique_id_override_identifiers = ["pose_id"]
+default_influx_json_payload_identifiers = ["payload_json","raw_joints_json"]
+default_influx_ignored_identifiers = ["id", "timestamp", "uploaded"]
+
 @dataclass
 class DataRoutine:
     thread: threading.Thread
@@ -343,6 +349,7 @@ class SQLiteDataHandler:
                 (id,),
             )
 
+###### Influx db handling API
     def init_influxdb_client(self, influxdb_client):
         self.influxdb_client = influxdb_client
         
@@ -370,6 +377,73 @@ class SQLiteDataHandler:
             print(f"failed to upload to influxdb client: {e}")
             return False
 
+    def sync_to_influx_db(self, data_table, bucket, limit=50,
+                                tag_indentifiers=default_influx_tag_indentifiers,
+                                unique_measurement_override_indentifiers=default_influx_unique_measurement_override_indentifiers,
+                                unique_id_override_identifiers=default_influx_unique_id_override_identifiers,
+                                json_payload_identifiers=default_influx_json_payload_identifiers,
+                                ignored_identifiers=default_influx_ignored_identifiers
+                                ):
+        unsynced_data = self.get_unsynced_data(table_name=data_table, limit=limit)
+        measurement_group = unsynced_data.get("table")
+
+        id_identifier = "id"
+        success_counter = 0
+        failed_counter = 0
+        success_ids = []
+        failed_ids = []
+
+        for data_point in unsynced_data.get("unsynced_data"):
+            sqlite_id = data_point.get("id",None)
+            timestamp = data_point.get("timestamp")
+            fields = {}
+            tags = {}
+
+            for item_name, value in data_point.items():
+
+                if item_name in tag_indentifiers:
+                    tags[item_name] = value
+                elif item_name in unique_measurement_override_indentifiers:
+                    measurement_group = unsynced_data.get("table") + "_" + value
+                    fields[item_name] = value
+                elif item_name in unique_id_override_identifiers:
+                    sqlite_id = value
+                    id_identifier = item_name
+                    fields[item_name] = value
+                elif item_name in json_payload_identifiers:
+                    payload = json.loads(value)
+                    for payload_field_name, payload_field_value in payload.items():
+                        if isinstance(payload_field_value, dict):
+                            payload_field_value = json.dumps(payload_field_value)
+                        fields[payload_field_name] = payload_field_value
+                    fields[item_name] = value
+                elif item_name in ignored_identifiers:
+                    continue
+                else:
+                    fields[item_name] = value
+
+            tags['sql_dataset'] = db_path
+            tags['sql_table'] = data_table
+            tags['sql_table_id'] = sqlite_id
+
+            success = self.write_to_influxdb(bucket,measurement_group, fields, tags, timestamp)
+
+            if success:
+                success_counter+=1
+                success_ids.append(sqlite_id)
+                self.mark_uploaded(data_table,sqlite_id,id_identifier)
+            else:
+                failed_counter+=1
+                failed_ids.append(sqlite_id)
+
+        resp = {"successful sends": success_counter,
+                "successful ids": success_ids,
+                "failed sends": failed_counter,
+                "failed ids": failed_ids}
+
+        return resp
+
+## Threading API
     def start(self, data_routine, run_rate_s = 1, routine_name = "data_routine"):
         self.kill(routine_name)
 
