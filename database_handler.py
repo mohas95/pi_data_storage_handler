@@ -422,7 +422,7 @@ class SQLiteDataHandler:
                 else:
                     fields[item_name] = value
 
-            tags['sql_dataset'] = db_path
+            tags['sql_dataset'] = self.db_path
             tags['sql_table'] = data_table
             tags['sql_table_id'] = sqlite_id
 
