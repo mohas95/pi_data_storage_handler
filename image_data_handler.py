@@ -90,7 +90,7 @@ class ImageDatasetHandler:
         if not self.image_db_root_path.exists():
             return []
 
-        return [path for path in self.image_db_root_path.iterdir() if path.is_dir()]
+        return [path.name for path in self.image_db_root_path.iterdir() if path.is_dir()]
 
     def init_s3_client(self, s3_client):
         self.s3_client = s3_client
