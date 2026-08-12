@@ -118,11 +118,12 @@ class ImageDatasetHandler:
             return False
 
     
-    def sync_with_s3_bucket(self, group, bucket):
+    def sync_with_s3_bucket(self, group, bucket, limit=None):
         group_path = self.image_db_root_path / group
         synced_path = group_path / "uploaded"
 
         resp = {
+            "attempted_uploads":0,
             "successful_uploads": 0,
             "failed_uploads": 0,
             "deleted_bad_images": 0,
@@ -146,6 +147,11 @@ class ImageDatasetHandler:
                     resp["deleted_images"].append(str(image_path.name))
 
                 continue
+
+            if limit is not None and resp["attempted_uploads"] >= limit:
+                break
+
+            resp["attempted_uploads"] += 1
 
             success = self.upload_image_to_s3(image_path, bucket, group)
 
