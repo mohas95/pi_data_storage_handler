@@ -332,13 +332,13 @@ class SQLiteDataHandler:
         return {"table": table_name,
                 "unsynced_data":[dict(row) for row in rows]}
 
-    def mark_uploaded(self, table_name, id):
+    def mark_uploaded(self, table_name, id, id_identifier = "id"):
         with self.connect_db() as conn:
             conn.execute(
                 f"""
                 UPDATE {table_name}
                 SET uploaded = 1
-                WHERE id = ?
+                WHERE {id_identifier} = ?
                 """,
                 (id,),
             )
