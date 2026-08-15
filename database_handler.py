@@ -188,6 +188,7 @@ class SQLiteDataHandler:
         self.db_path = Path(db_path)
         self.tables = dict_of_tables
 
+        self.influxdb_client= None
         if influxdb_creds is not None:
             self.influxdb_client = InfluxDBClient3(host=influxdb_creds.get("hoset"),
                                                    token=influxdb_creds.get("token"), 
