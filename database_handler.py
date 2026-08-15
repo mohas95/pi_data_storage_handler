@@ -190,7 +190,7 @@ class SQLiteDataHandler:
 
         self.influxdb_client= None
         if influxdb_creds is not None:
-            self.influxdb_client = InfluxDBClient3(host=influxdb_creds.get("hoset"),
+            self.influxdb_client = InfluxDBClient3(host=influxdb_creds.get("host"),
                                                    token=influxdb_creds.get("token"), 
                                                    org=influxdb_creds.get("org")
                                                    )
