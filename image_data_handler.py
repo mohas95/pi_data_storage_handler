@@ -7,9 +7,12 @@ import cv2
 import shutil
 
 
-def request_frame(server_url, save_dir, filename=None, params={}):
+def request_frame(server_url, save_dir, filename=None, params=None):
     save_dir = Path(save_dir)
     save_dir.mkdir(parents=True, exist_ok=True)
+
+    if params is None:
+        params = {}
 
     response = requests.get(
         f"{server_url}",
@@ -22,12 +25,15 @@ def request_frame(server_url, save_dir, filename=None, params={}):
     image_id = uuid.uuid4().hex
     timestamp = datetime.now().astimezone()
     timestamp_str = timestamp.strftime("%Y%m%d_%H%M%S")
+
     filename = filename or f"{timestamp_str}_{image_id}.png"
     file_path = save_dir / filename
+    tmp_path = save_dir / f"{filename}.tmp"
 
-
-    with open(file_path,"wb") as f:
+    with open(tmp_path, "wb") as f:
         f.write(response.content)
+
+    tmp_path.replace(file_path)
 
     return{
         "file_name": filename,
