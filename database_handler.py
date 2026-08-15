@@ -183,11 +183,16 @@ class DataRoutine:
 
 
 class SQLiteDataHandler:
-    def __init__(self, db_path, dict_of_tables = None, influxdb_client = None):
+    def __init__(self, db_path, dict_of_tables = None, influxdb_creds = None):
         
         self.db_path = Path(db_path)
         self.tables = dict_of_tables
-        self.influxdb_client = influxdb_client
+
+        if influxdb_creds is not None:
+            self.influxdb_client = InfluxDBClient3(host=influxdb_creds.get("hoset"),
+                                                   token=influxdb_creds.get("token"), 
+                                                   org=influxdb_creds.get("org")
+                                                   )
         
         self.active_data_routines = {}
 
